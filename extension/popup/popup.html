@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resonance</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header with navigation -->
+    <div class="header">
+      <h1>🎵 Resonance</h1>
+      <p class="tagline">Your articles, talking back</p>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="nav-tabs">
+      <button id="tab-current" class="tab-btn active">Current</button>
+      <button id="tab-history" class="tab-btn">History</button>
+    </div>
+
+    <!-- CURRENT VIEW -->
+    <div id="current-view" class="view">
+      <!-- Article Info -->
+      <div id="article-info" class="article-info"></div>
+
+      <!-- Status -->
+      <div class="status-bar">
+        <span id="status">Initializing...</span>
+      </div>
+
+      <!-- Controls -->
+      <div id="controls" class="controls hidden">
+        <div class="button-group">
+          <button id="summarize-btn" class="btn btn-primary">📝 Summarize</button>
+          <button id="key-points-btn" class="btn btn-primary">🎯 Key Points</button>
+        </div>
+
+        <!-- Q&A Input -->
+        <div class="query-section">
+          <div class="input-group">
+            <input 
+              type="text" 
+              id="query-input" 
+              placeholder="Ask a question about this article..."
+              class="query-input"
+            />
+            <button id="send-btn" class="send-btn" style="display: none;">➤</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loading-response" class="loading hidden">
+        <div class="spinner"></div>
+        <p>Processing...</p>
+      </div>
+
+      <!-- Response Container -->
+      <div id="response-container" class="response-container hidden">
+        <div class="response-header">
+          <h3>Response</h3>
+          <button id="copy-btn" class="icon-btn" title="Copy to clipboard">📋</button>
+        </div>
+        <div id="response-content" class="response-content"></div>
+      </div>
+
+      <!-- Error Container -->
+      <div id="error-container" class="error-container hidden">
+        <div class="error-icon">⚠️</div>
+        <p id="error-message"></p>
+        <button id="retry-btn" class="btn btn-secondary">Try Again</button>
+      </div>
+    </div>
+
+    <!-- HISTORY VIEW -->
+    <div id="history-view" class="view hidden">
+      <div class="history-header">
+        <h2>Conversation History</h2>
+        <button id="refresh-history" class="icon-btn" title="Refresh">🔄</button>
+      </div>
+
+      <!-- Search Box -->
+      <div class="search-box">
+        <input 
+          type="text" 
+          placeholder="Search conversations..." 
+          class="search-input"
+        />
+        <span class="search-icon">🔍</span>
+      </div>
+
+      <!-- Loading State -->
+      <div id="history-loading" class="loading hidden">
+        <div class="spinner"></div>
+        <p>Loading history...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div id="history-empty" class="empty-state hidden">
+        <div class="empty-icon">📭</div>
+        <p>No conversations yet</p>
+        <p class="empty-hint">Start by summarizing an article or asking questions!</p>
+      </div>
+
+      <!-- History List -->
+      <div id="history-list" class="history-list"></div>
+
+      <!-- Conversation Detail View -->
+      <div id="conversation-detail" class="conversation-detail hidden">
+        <button id="back-to-list" class="back-btn">← Back to History</button>
+        <div id="detail-messages" class="messages-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
