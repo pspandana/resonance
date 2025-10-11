@@ -1162,7 +1162,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ## 📞 Contact & Links
 
-- **GitHub:** [@yourusername](https://github.com/yourusername)
+- **GitHub:** [pspandana](https://github.com/yourusername)
 - **LinkedIn:** [Your Profile](https://linkedin.com/in/yourprofile)
 - **Portfolio:** [yourportfolio.com](https://yourportfolio.com)
 - **Email:** your.email@example.com
@@ -1216,4 +1216,7 @@ This project demonstrates full-stack development skills, AI/ML integration, and 
 
 **Built with ❤️ by a passionate developer**
 
+
 **Last Updated:** October 2025
+
+
