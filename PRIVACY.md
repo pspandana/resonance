@@ -42,7 +42,6 @@ When you use Resonance:
 You can:
 - Delete your conversation history anytime (click History → clear)
 - Stop using the extension anytime
-- Email us with questions: [your-email@example.com]
 
 ### Third Parties
 
@@ -58,4 +57,3 @@ If we update this policy, we'll post the new version here with a new date.
 
 ---
 
-**Questions?** Email: [your-email@example.com]
