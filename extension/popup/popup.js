@@ -1,42 +1,55 @@
-const API_URL = 'http://localhost:8000';
+const API_URL = 'https://resonance-backend-spandanap-aue0e7hwgsaeamcu.canadacentral-01.azurewebsites.net';
 
 let currentArticle = null;
 let currentConversationId = null;
 let currentView = 'current';
-let currentMessages = []; // Track messages in current conversation
+let currentMessages = [];
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log('🎵 Resonance popup loaded');
+  
   try {
     // Get current tab
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
-    // Extract article from current page
-    const response = await chrome.tabs.sendMessage(tab.id, { action: 'extractArticle' });
-    
-    if (response && response.success) {
-      currentArticle = response.article;
-      
-      // Check if we have an existing conversation for this URL
-      await checkExistingConversation(currentArticle.url);
-      
-      showArticleInfo();
-      setupEventListeners();
-    } else {
-      showError('Could not extract article from this page. Try a different article or blog post.');
+    // Check if we can access this tab
+    if (!tab || !tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+      showError('Cannot read this page. Please open an article on a regular website.');
+      return;
     }
+    
+    // Try to extract article
+    try {
+      const response = await chrome.tabs.sendMessage(tab.id, { action: 'extractArticle' });
+      
+      if (response && response.success) {
+        currentArticle = response.article;
+        await checkExistingConversation(currentArticle.url);
+        showArticleInfo();
+        setupEventListeners();
+        console.log('✅ Article loaded:', currentArticle.title);
+      } else {
+        showError('Could not extract article from this page. Try a different article or blog post.');
+      }
+    } catch (msgError) {
+      console.error('❌ Message error:', msgError);
+      showError('Please refresh the page and try again.');
+    }
+    
   } catch (error) {
-    console.error('Error:', error);
+    console.error('❌ Error:', error);
     showError('Failed to read the page. Make sure you\'re on an article or blog post.');
   }
+  
+  // Setup search functionality
+  setupSearchListener();
 });
 
 async function checkExistingConversation(url) {
-  // Check if there's an ongoing conversation for this article
   const data = await chrome.storage.local.get(['conversations']);
   const conversations = data.conversations || [];
   
-  // Find conversation for this URL from today
   const today = new Date().toDateString();
   const existing = conversations.find(conv => 
     conv.article_url === url && 
@@ -47,7 +60,6 @@ async function checkExistingConversation(url) {
     currentConversationId = existing.id;
     currentMessages = existing.messages || [];
   } else {
-    // Create new conversation ID
     currentConversationId = generateId();
     currentMessages = [];
   }
@@ -72,34 +84,35 @@ function showArticleInfo() {
 }
 
 function setupEventListeners() {
+  console.log('🔧 Setting up event listeners...');
+  
   // Tab switching
   document.getElementById('tab-current').addEventListener('click', () => switchView('current'));
-  document.getElementById('tab-history').addEventListener('click', () => switchView('history'));
+  document.getElementById('tab-history').addEventListener('click', () => {
+    console.log('👆 History tab clicked');
+    switchView('history');
+  });
   
-  // Summarize button
+  // Quick action buttons
   document.getElementById('summarize-btn').addEventListener('click', () => {
     querySummarize('summary');
   });
 
-  // Key points button
   document.getElementById('key-points-btn').addEventListener('click', () => {
     querySummarize('key-points');
   });
 
-  // Copy button
   document.getElementById('copy-btn').addEventListener('click', copyResponse);
 
-  // Retry button
   document.getElementById('retry-btn').addEventListener('click', () => {
     document.getElementById('error-container').classList.add('hidden');
     document.getElementById('controls').classList.remove('hidden');
   });
 
-  // Text Q&A input handlers
+  // Q&A input
   const queryInput = document.getElementById('query-input');
   const sendBtn = document.getElementById('send-btn');
   
-  // Show send button when typing
   queryInput.addEventListener('input', (e) => {
     if (e.target.value.trim()) {
       sendBtn.style.display = 'block';
@@ -108,7 +121,6 @@ function setupEventListeners() {
     }
   });
   
-  // Send on button click
   if (sendBtn) {
     sendBtn.addEventListener('click', () => {
       const question = queryInput.value.trim();
@@ -120,7 +132,6 @@ function setupEventListeners() {
     });
   }
   
-  // Send on Enter key
   queryInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       const question = queryInput.value.trim();
@@ -133,18 +144,65 @@ function setupEventListeners() {
   });
 
   // History buttons
-  document.getElementById('refresh-history').addEventListener('click', loadHistory);
+  document.getElementById('refresh-history').addEventListener('click', () => {
+    console.log('🔄 Refresh clicked');
+    loadHistory();
+  });
+  
   document.getElementById('back-to-list').addEventListener('click', () => {
     document.getElementById('conversation-detail').classList.add('hidden');
     document.getElementById('history-list').classList.remove('hidden');
   });
+  
+  console.log('✅ Event listeners set up');
 }
 
-// View Switching
+function setupSearchListener() {
+  const searchInput = document.querySelector('.search-input');
+  
+  if (searchInput) {
+    console.log('🔍 Setting up search listener');
+    searchInput.addEventListener('input', async (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      console.log('⌨️ Searching:', query);
+      
+      const data = await chrome.storage.local.get(['conversations']);
+      const conversations = data.conversations || [];
+      
+      if (!query) {
+        displayConversations(conversations);
+        return;
+      }
+      
+      // Filter conversations
+      const filtered = conversations.filter(conv => 
+        conv.article_title?.toLowerCase().includes(query) ||
+        conv.first_question?.toLowerCase().includes(query) ||
+        conv.messages?.some(m => m.content.toLowerCase().includes(query))
+      );
+      
+      console.log('✅ Found', filtered.length, 'results');
+      
+      if (filtered.length > 0) {
+        displayConversations(filtered);
+      } else {
+        const historyList = document.getElementById('history-list');
+        historyList.innerHTML = `
+          <div style="text-align:center;padding:60px 20px;color:#6b7280;">
+            <div style="font-size:48px;margin-bottom:16px;">🔍</div>
+            <p style="font-size:15px;font-weight:500;margin-bottom:8px;">No results found</p>
+            <p style="font-size:13px;">Try different keywords</p>
+          </div>
+        `;
+      }
+    });
+  }
+}
+
 function switchView(view) {
+  console.log('🔄 Switching to view:', view);
   currentView = view;
   
-  // Update tabs
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
   
   if (view === 'current') {
@@ -159,14 +217,12 @@ function switchView(view) {
   }
 }
 
-// Save conversation to local storage
 async function saveConversation() {
   if (currentMessages.length === 0) return;
   
   const data = await chrome.storage.local.get(['conversations']);
   let conversations = data.conversations || [];
   
-  // Find existing conversation or create new one
   const existingIndex = conversations.findIndex(c => c.id === currentConversationId);
   
   const conversation = {
@@ -183,10 +239,9 @@ async function saveConversation() {
   if (existingIndex >= 0) {
     conversations[existingIndex] = conversation;
   } else {
-    conversations.unshift(conversation); // Add to beginning
+    conversations.unshift(conversation);
   }
   
-  // Keep only last 50 conversations
   if (conversations.length > 50) {
     conversations = conversations.slice(0, 50);
   }
@@ -194,21 +249,18 @@ async function saveConversation() {
   await chrome.storage.local.set({ conversations });
 }
 
-// Ask a question about the article
 async function askQuestion(question) {
   if (!currentArticle) {
     showError('No article loaded');
     return;
   }
 
-  // Add user message to current conversation
   currentMessages.push({
     role: 'user',
     content: question,
     created_at: new Date().toISOString()
   });
 
-  // Show loading
   document.getElementById('controls').classList.add('hidden');
   document.getElementById('response-container').classList.add('hidden');
   document.getElementById('loading-response').classList.remove('hidden');
@@ -235,23 +287,19 @@ async function askQuestion(question) {
 
     const data = await response.json();
     
-    // Add assistant response to current conversation
     currentMessages.push({
       role: 'assistant',
       content: data.answer,
       created_at: new Date().toISOString()
     });
     
-    // Save to local storage
     await saveConversation();
-    
     showResponse(data.answer, 'question');
     
   } catch (error) {
     console.error('Error:', error);
-    // Remove the user message if request failed
     currentMessages.pop();
-    showError(`Failed to get answer. Make sure backend is running at ${API_URL}`);
+    showError(`Failed to get answer. Make sure backend is running.`);
   } finally {
     document.getElementById('loading-response').classList.add('hidden');
   }
@@ -265,14 +313,12 @@ async function querySummarize(type) {
 
   const promptText = type === 'summary' ? 'Summarize this article' : 'Give me the key points';
   
-  // Add to conversation
   currentMessages.push({
     role: 'user',
     content: promptText,
     created_at: new Date().toISOString()
   });
 
-  // Show loading
   document.getElementById('controls').classList.add('hidden');
   document.getElementById('response-container').classList.add('hidden');
   document.getElementById('loading-response').classList.remove('hidden');
@@ -299,22 +345,18 @@ async function querySummarize(type) {
 
     const data = await response.json();
     
-    // Add assistant response
     currentMessages.push({
       role: 'assistant',
       content: data.summary,
       created_at: new Date().toISOString()
     });
     
-    // Save to local storage
     await saveConversation();
-    
     showResponse(data.summary, type);
   } catch (error) {
     console.error('Error:', error);
-    // Remove the user message if request failed
     currentMessages.pop();
-    showError(`Failed to connect to Resonance server. Make sure the backend is running at ${API_URL}`);
+    showError(`Failed to connect to server.`);
   } finally {
     document.getElementById('loading-response').classList.add('hidden');
   }
@@ -323,7 +365,6 @@ async function querySummarize(type) {
 function showResponse(text, type) {
   const responseElement = document.getElementById('response-content');
   
-  // Format key points as a list
   if (type === 'key-points' || text.includes('•')) {
     const lines = text.split(/\n|•/).filter(line => line.trim());
     const listHTML = '<ul>' + 
@@ -331,7 +372,6 @@ function showResponse(text, type) {
       '</ul>';
     responseElement.innerHTML = listHTML;
   } else {
-    // Regular text - preserve paragraphs
     const paragraphs = text.split('\n\n').filter(p => p.trim());
     const htmlText = paragraphs.map(p => `<p>${p}</p>`).join('');
     responseElement.innerHTML = htmlText || `<p>${text}</p>`;
@@ -365,11 +405,11 @@ function updateStatus(status) {
 }
 
 // ============================================
-// HISTORY FUNCTIONS (NOW USING LOCAL STORAGE)
+// HISTORY FUNCTIONS
 // ============================================
 
 async function loadHistory() {
-  console.log('Loading history...');
+  console.log('📚 Loading history...');
   const historyList = document.getElementById('history-list');
   const historyLoading = document.getElementById('history-loading');
   const historyEmpty = document.getElementById('history-empty');
@@ -379,30 +419,46 @@ async function loadHistory() {
   historyList.innerHTML = '';
   historyEmpty.classList.add('hidden');
   
+  // Clear search
+  const searchInput = document.querySelector('.search-input');
+  if (searchInput) {
+    searchInput.value = '';
+  }
+  
   try {
-    // Get conversations from local storage
     const data = await chrome.storage.local.get(['conversations']);
-    console.log('Retrieved data:', data);
     const conversations = data.conversations || [];
-    console.log('Number of conversations:', conversations.length);
+    console.log('📊 Found', conversations.length, 'conversations');
     
-    // Always hide loading spinner
     historyLoading.classList.add('hidden');
     
     if (conversations.length > 0) {
-      historyList.innerHTML = '';
-      conversations.forEach(conv => {
-        const item = createConversationItem(conv);
-        historyList.appendChild(item);
-      });
-      console.log('Displayed', conversations.length, 'conversations');
+      displayConversations(conversations);
     } else {
       historyEmpty.classList.remove('hidden');
-      console.log('No conversations found - showing empty state');
     }
+    
   } catch (error) {
-    console.error('Error loading history:', error);
+    console.error('❌ Error loading history:', error);
     historyLoading.classList.add('hidden');
+    historyEmpty.classList.remove('hidden');
+  }
+}
+
+function displayConversations(conversations) {
+  console.log('📋 Displaying', conversations.length, 'conversations');
+  const historyList = document.getElementById('history-list');
+  const historyEmpty = document.getElementById('history-empty');
+  
+  if (conversations.length > 0) {
+    historyList.innerHTML = '';
+    conversations.forEach(conv => {
+      const item = createConversationItem(conv);
+      historyList.appendChild(item);
+    });
+    historyEmpty.classList.add('hidden');
+  } else {
+    historyList.innerHTML = '';
     historyEmpty.classList.remove('hidden');
   }
 }
@@ -415,29 +471,47 @@ function createConversationItem(conversation) {
   const timeAgo = getTimeAgo(date);
   
   div.innerHTML = `
-    <div class="conversation-title">${conversation.article_title}</div>
+    <div class="conversation-title">
+      <a href="${conversation.article_url}" target="_blank" class="article-link">
+        ${conversation.article_title || 'Untitled'}
+      </a>
+    </div>
     <div class="conversation-meta">${timeAgo} • ${conversation.message_count} messages</div>
     ${conversation.first_question ? `<div class="conversation-preview">"${conversation.first_question}"</div>` : ''}
   `;
   
-  div.addEventListener('click', () => viewConversation(conversation.id));
+  // Open article in new tab when clicking title
+  const link = div.querySelector('.article-link');
+  if (link) {
+    link.addEventListener('click', (e) => {
+      e.stopPropagation();
+      console.log('🔗 Opening article:', conversation.article_url);
+      chrome.tabs.create({ url: conversation.article_url });
+    });
+  }
+  
+  // View conversation when clicking card
+  div.addEventListener('click', (e) => {
+    if (!e.target.classList.contains('article-link')) {
+      console.log('💬 Opening conversation:', conversation.id);
+      viewConversation(conversation.id);
+    }
+  });
   
   return div;
 }
 
 async function viewConversation(conversationId) {
+  console.log('👁️ Viewing conversation:', conversationId);
   const detailView = document.getElementById('conversation-detail');
   const messagesList = document.getElementById('detail-messages');
   
-  // Hide list, show detail
   document.getElementById('history-list').classList.add('hidden');
   detailView.classList.remove('hidden');
   
-  // Show loading
-  messagesList.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading conversation...</p></div>';
+  messagesList.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading...</p></div>';
   
   try {
-    // Get conversation from local storage
     const data = await chrome.storage.local.get(['conversations']);
     const conversations = data.conversations || [];
     const conversation = conversations.find(c => c.id === conversationId);
@@ -448,12 +522,13 @@ async function viewConversation(conversationId) {
         const msgDiv = createMessageItem(msg);
         messagesList.appendChild(msgDiv);
       });
+      console.log('✅ Loaded', conversation.messages.length, 'messages');
     } else {
-      messagesList.innerHTML = '<p style="text-align:center;color:#6b7280;padding:20px;">No messages found</p>';
+      messagesList.innerHTML = '<p style="text-align:center;color:#6b7280;padding:20px;">No messages</p>';
     }
   } catch (error) {
-    console.error('Error loading conversation:', error);
-    messagesList.innerHTML = '<p style="text-align:center;color:#dc2626;padding:20px;">Error loading messages</p>';
+    console.error('❌ Error loading conversation:', error);
+    messagesList.innerHTML = '<p style="text-align:center;color:#dc2626;padding:20px;">Error loading</p>';
   }
 }
 
