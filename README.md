@@ -265,6 +265,122 @@ Question → Find relevant chunks only → AI → Answer
 ```
 Benefits: Faster, cheaper, more accurate!
 
+**How RAG Works in Our Extension:**
+
+**Step 1: Article Extraction** (Extension)
+- User clicks extension icon on any webpage
+- Extension extracts clean article text (ignores ads, menus, etc.)
+- Gets article title and URL
+
+**Step 2: Smart Chunking** (Backend)
+- Breaks article into small pieces (~500 words each)
+- Each piece focuses on one topic or concept
+- Like cutting a long article into digestible sections
+
+**Step 3: Creating "Fingerprints"** (Backend)
+- Creates unique "fingerprints" (embeddings) for each piece
+- Similar topics get similar fingerprints
+- This is how we know what each piece is about
+
+**Step 4: Smart Storage** (Pinecone Database)
+- Stores each piece with its fingerprint
+- Remembers which article it came from
+- Creates a personal knowledge base of everything you've read
+
+**Step 5: Smart Retrieval** (When you ask for summary or key points)
+- Creates fingerprint for your request (summary/key points)
+- Finds 2-3 most relevant pieces that best represent the article
+- Only sends those pieces to AI (not the whole article)
+
+**Step 6: AI Processing** (OpenAI)
+- AI gets only relevant content
+- Processes just the relevant pieces
+- Gives focused, accurate answers
+
+**The Key Point: RAG happens FIRST, before any AI processing**
+- ✅ **Correct**: Article → RAG (chunk + store) → AI (summary/key points)
+- ❌ **Wrong**: Article → AI (summary/key points) → RAG (store)
+
+**Why This Order Matters:**
+- **Efficiency**: AI only processes relevant content
+- **Cost**: You pay for relevant chunks, not entire articles  
+- **Speed**: Faster processing with less content
+- **Accuracy**: AI focuses on what matters
+
+**How Fingerprints Work for Summary Requests:**
+
+**1. User clicks "Summarize" button**
+- Extension sends request: "Please summarize this article"
+
+**2. Backend creates a "summary fingerprint"**
+- We create a fingerprint for the concept of "summary"
+- This fingerprint represents "What are the main points of this article?"
+- It's like asking: "What are the most important parts?"
+
+**3. Pinecone finds similar pieces**
+- Searches the database for article chunks that match the "summary" fingerprint
+- Looks for pieces that contain the most important information
+- Finds chunks that best represent the overall article content
+
+**4. Smart selection**
+- Gets 2-3 most relevant chunks that best represent the article
+- These chunks contain the key information, main points, and important details
+- Ignores chunks that are just examples, details, or less important content
+
+**Real Example:**
+**Article:** "Complete Guide to Machine Learning" (20 pages)
+
+**When user asks for summary:**
+- **Summary fingerprint** = "What are the main concepts and key points?"
+- **Pinecone finds:** Chunks about "What is ML", "Types of ML", "How ML works"
+- **Ignores:** Chunks about "History of ML", "Specific examples", "Technical details"
+
+**Result:** AI gets only the most important chunks → Creates a focused summary
+
+**Why This Works:**
+- **Summary fingerprint** knows what "summary" means
+- **Smart selection** finds the most representative content
+- **Efficient processing** - AI gets only what matters for a summary
+
+**In simple terms:** The fingerprint is like a smart filter that knows "for a summary, I need the most important parts, not the details or examples."
+
+**How Fingerprints Work for Key Points Requests:**
+
+**1. User clicks "Key Points" button**
+- Extension sends request: "Please extract the key points from this article"
+
+**2. Backend creates a "key points fingerprint"**
+- We create a fingerprint for the concept of "key points"
+- This fingerprint represents "What are the main takeaways and important facts?"
+- It's like asking: "What should I remember from this article?"
+
+**3. Pinecone finds similar pieces**
+- Searches the database for article chunks that match the "key points" fingerprint
+- Looks for pieces that contain the most important facts and takeaways
+- Finds chunks that best represent the core information
+
+**4. Smart selection**
+- Gets 2-3 most relevant chunks that contain the key information
+- These chunks have the main facts, important data, and core concepts
+- Ignores chunks that are just examples, background info, or less critical details
+
+**Real Example:**
+**Article:** "Complete Guide to Machine Learning" (20 pages)
+
+**When user asks for key points:**
+- **Key points fingerprint** = "What are the main facts and takeaways?"
+- **Pinecone finds:** Chunks about "ML definition", "Main types", "Key benefits", "Important applications"
+- **Ignores:** Chunks about "History", "Detailed examples", "Technical implementation"
+
+**Result:** AI gets only the most important chunks → Extracts focused key points
+
+**Why This Works:**
+- **Key points fingerprint** knows what "key points" means
+- **Smart selection** finds the most important facts and takeaways
+- **Efficient processing** - AI gets only what matters for key points
+
+**In simple terms:** The fingerprint is like a smart filter that knows "for key points, I need the main facts and takeaways, not the background or examples."
+
 **Real Example:**
 You're reading an article about "Space Exploration" with 50 paragraphs.
 
