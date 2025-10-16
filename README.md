@@ -9,24 +9,24 @@
 <table>
   <tr>
     <td align="center">
-      <img src="screenshots/homepage.png" width="400px" alt="Main Interface"/>
+      <img src="screenshots/screen-homepage.png" width="400px" alt="Main Interface"/>
       <br />
       <b>Main Interface</b>
     </td>
     <td align="center">
-      <img src="screenshots/summary.png" width="400px" alt="Summary Feature"/>
+      <img src="screenshots/screenshot-summary.png" width="400px" alt="Summary Feature"/>
       <br />
       <b>Smart Summaries</b>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="screenshots/key_points.png" width="400px" alt="Key Points"/>
+      <img src="screenshots/screenshot-keypoints.png" width="400px" alt="Key Points"/>
       <br />
       <b>Key Points Extraction</b>
     </td>
     <td align="center">
-      <img src="screenshots/history.png" width="400px" alt="History"/>
+      <img src="screenshots/screenshot-rename.png" width="400px" alt="History"/>
       <br />
       <b>Conversation History</b>
     </td>
@@ -1315,16 +1315,16 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 ### Screenshots
 
 **Main Interface**
-![Homepage](screenshots/homepage.png)
+![Homepage](screenshots/screen-homepage.png)
 
 **Summary Feature**
-![Summary](screenshots/summary.png)
+![Summary](screenshots/screenshot-summary.png)
 
 **Key Points Extraction**
-![Key Points](screenshots/key_points.png)
+![Key Points](screenshots/screenshot-keypoints.png)
 
 **Conversation History**
-![History](screenshots/history.png)
+![History](screenshots/screenshot-rename.png)
 
 ---
 
