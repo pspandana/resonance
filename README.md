@@ -1512,4 +1512,13 @@ This project demonstrates full-stack development skills, AI/ML integration, and 
 
 **Last Updated:** October 2025
 
+## 📜 Usage Guidelines
+
+This project is shared as open source under the MIT License. However:
+
+- **API Keys**: You MUST use your own OpenAI and Pinecone API keys
+- **Backend**: Set up your own backend using the provided code (do not use my deployed instances)
+- **Personal Use**: Feel free to use this for personal, educational, or non-commercial purposes
+- **Attribution**: If you build something based on this work, I'd appreciate attribution
+
 
