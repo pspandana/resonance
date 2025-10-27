@@ -1521,4 +1521,9 @@ This project is shared as open source under the MIT License. However:
 - **Personal Use**: Feel free to use this for personal, educational, or non-commercial purposes
 - **Attribution**: If you build something based on this work, I'd appreciate attribution
 
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2025 Spandana 
 
