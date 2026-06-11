@@ -39,6 +39,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Update usage display
         updateUsageDisplay();
+
+        // Fetch related articles in background (non-blocking)
+        fetchRelatedArticles(currentArticle.title, currentArticle.url);
       } else {
         showError('Could not extract article from this page. Try a different article or blog post.');
       }
@@ -197,7 +200,15 @@ function setupEventListeners() {
       modal.classList.add('hidden');
     }
   });
-  
+
+  // Related articles toggle
+  document.getElementById('related-toggle').addEventListener('click', () => {
+    const list = document.getElementById('related-list');
+    const chevron = document.querySelector('.related-chevron');
+    list.classList.toggle('hidden');
+    chevron.classList.toggle('open');
+  });
+
   console.log('✅ Event listeners set up');
 }
 
@@ -579,6 +590,44 @@ function showLimitExceeded(limitInfo) {
   `;
   
   errorContainer.classList.remove('hidden');
+}
+
+// ============================================
+// CONNECTED READING FUNCTIONS
+// ============================================
+
+async function fetchRelatedArticles(title, url) {
+  try {
+    const params = new URLSearchParams({ title, url, limit: 3 });
+    const response = await fetch(`${API_URL}/api/related?${params}`);
+    if (!response.ok) return;
+    const data = await response.json();
+    if (data.related && data.related.length > 0) {
+      showRelatedPanel(data.related);
+    }
+  } catch (e) {
+    // Silently fail — related articles are a nice-to-have
+  }
+}
+
+function showRelatedPanel(articles) {
+  const panel = document.getElementById('related-panel');
+  const label = document.getElementById('related-label');
+  const list = document.getElementById('related-list');
+
+  label.textContent = `📚 ${articles.length} related article${articles.length > 1 ? 's' : ''} in your history`;
+
+  list.innerHTML = articles.map(a => `
+    <a class="related-item" href="${a.url}" target="_blank" title="${a.title}">
+      <div class="related-item-dot"></div>
+      <div class="related-item-text">
+        <div class="related-item-title">${a.title}</div>
+        <div class="related-item-score">${Math.round(a.similarity * 100)}% similar</div>
+      </div>
+    </a>
+  `).join('');
+
+  panel.classList.remove('hidden');
 }
 
 // ============================================

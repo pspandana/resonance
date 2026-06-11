@@ -540,3 +540,88 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
+
+/* Connected Reading Panel */
+.related-panel {
+  margin: 0 12px 4px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fafafa;
+}
+
+.related-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: #667eea;
+  text-align: left;
+}
+
+.related-toggle:hover {
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.related-chevron {
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+.related-chevron.open {
+  transform: rotate(180deg);
+}
+
+.related-list {
+  border-top: 1px solid #e5e7eb;
+  padding: 6px 0;
+}
+
+.related-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s;
+}
+
+.related-item:hover {
+  background: rgba(102, 126, 234, 0.06);
+}
+
+.related-item-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #667eea;
+  margin-top: 5px;
+}
+
+.related-item-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.related-item-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.related-item-score {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 1px;
+}

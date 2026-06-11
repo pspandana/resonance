@@ -247,7 +247,7 @@ async def summarize(request: SummaryRequest):
             "summary": summary,
             "article_title": request.title,
             "type": request.type,
-            "related_articles": len(similar_articles),
+            "related_articles": similar_articles,
             "conversation_id": conversation_id
         }
         
@@ -314,7 +314,7 @@ Provide a clear answer. If the question relates to previous reading (shown in co
             "success": True,
             "answer": answer,
             "question": request.question,
-            "related_articles": len(similar_articles),
+            "related_articles": similar_articles,
             "conversation_id": conversation_id
         }
         
@@ -371,6 +371,24 @@ async def remove_conversation(conversation_id: str):
         return {
             "success": success,
             "message": "Conversation deleted" if success else "Failed to delete"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/related")
+async def get_related_articles(title: str, url: str, limit: int = 3):
+    """Find articles from reading history related to the current one"""
+    try:
+        article_id = generate_article_id(url)
+        results = retrieve_similar_articles(title, top_k=limit + 1)
+
+        # Exclude the current article itself
+        filtered = [r for r in results if generate_article_id(r["url"]) != article_id][:limit]
+
+        return {
+            "success": True,
+            "related": filtered,
+            "count": len(filtered)
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
