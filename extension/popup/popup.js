@@ -1,4 +1,4 @@
-const API_URL = 'https://resonance-backend-spandanap-aue0e7hwgsaeamcu.canadacentral-01.azurewebsites.net';
+const API_URL = 'https://resonance-production-167e.up.railway.app';
 
 let currentArticle = null;
 let currentConversationId = null;
