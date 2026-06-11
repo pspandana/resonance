@@ -55,11 +55,11 @@ try:
             )
         
         index = pc.Index(index_name)
-        print("✅ Pinecone connected successfully")
+        print("[OK] Pinecone connected successfully")
     else:
-        print("⚠️  Pinecone API key not found - RAG features disabled")
+        print("[WARN] Pinecone API key not found - RAG features disabled")
 except Exception as e:
-    print(f"⚠️  Pinecone initialization failed: {e}")
+    print(f"[WARN] Pinecone initialization failed: {e}")
 
 # Startup/Shutdown events
 @app.on_event("startup")
@@ -132,7 +132,7 @@ def store_article_in_rag(article_id: str, title: str, url: str, content: str, su
                 "content_preview": content[:500]
             }
         }])
-        print(f"✅ Stored article in RAG: {title}")
+        print(f"[OK] Stored article in RAG: {title}")
         return True
     except Exception as e:
         print(f"Error storing in RAG: {e}")

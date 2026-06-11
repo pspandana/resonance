@@ -25,11 +25,11 @@ async def connect_db():
     if database and DATABASE_URL:
         try:
             await database.connect()
-            print("✅ Database connected")
+            print("[OK] Database connected")
         except Exception as e:
-            print(f"⚠️  Database connection failed: {e}")
+            print(f"[WARN] Database connection failed: {e}")
     else:
-        print("⚠️  DATABASE_URL not found - conversations will not be saved")
+        print("[WARN] DATABASE_URL not found - conversations will not be saved")
 
 async def disconnect_db():
     """Disconnect from database"""
@@ -66,7 +66,7 @@ async def create_conversation(article_url: str, article_title: str) -> str:
             }
         )
         
-        print(f"✅ Created conversation: {conversation_id}")
+        print(f"[OK] Created conversation: {conversation_id}")
         return conversation_id
     except Exception as e:
         print(f"Error creating conversation: {e}")
@@ -106,7 +106,7 @@ async def save_message(
             values={"id": conversation_id}
         )
         
-        print(f"✅ Saved {role} message to conversation {conversation_id}")
+        print(f"[OK] Saved {role} message to conversation {conversation_id}")
     except Exception as e:
         print(f"Error saving message: {e}")
 
@@ -219,7 +219,7 @@ async def delete_conversation(conversation_id: str):
             query="DELETE FROM conversations WHERE id = :id",
             values={"id": conversation_id}
         )
-        print(f"✅ Deleted conversation: {conversation_id}")
+        print(f"[OK] Deleted conversation: {conversation_id}")
         return True
     except Exception as e:
         print(f"Error deleting conversation: {e}")

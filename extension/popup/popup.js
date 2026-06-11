@@ -5,6 +5,13 @@ let currentConversationId = null;
 let currentView = 'current';
 let currentMessages = [];
 
+// Token limit constants
+const DAILY_LIMITS = {
+  input: 20000,    // 20K input tokens per day
+  output: 5000,    // 5K output tokens per day
+  requests: 30     // 30 total requests per day
+};
+
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🎵 Resonance popup loaded');
@@ -29,6 +36,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         showArticleInfo();
         setupEventListeners();
         console.log('✅ Article loaded:', currentArticle.title);
+        
+        // Update usage display
+        updateUsageDisplay();
       } else {
         showError('Could not extract article from this page. Try a different article or blog post.');
       }
@@ -66,7 +76,7 @@ async function checkExistingConversation(url) {
 }
 
 function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
 }
 
 function showArticleInfo() {
@@ -152,6 +162,40 @@ function setupEventListeners() {
   document.getElementById('back-to-list').addEventListener('click', () => {
     document.getElementById('conversation-detail').classList.add('hidden');
     document.getElementById('history-list').classList.remove('hidden');
+  });
+  
+  // Usage statistics
+  const showUsageBtn = document.getElementById('show-usage');
+  if (showUsageBtn) {
+    showUsageBtn.addEventListener('click', showUsageStats);
+  }
+  
+  // Close modal
+  const closeModal = document.querySelector('.close-modal');
+  if (closeModal) {
+    closeModal.addEventListener('click', () => {
+      document.getElementById('usage-modal').classList.add('hidden');
+    });
+  }
+  
+  // Reset usage data
+  const resetUsageBtn = document.getElementById('reset-usage');
+  if (resetUsageBtn) {
+    resetUsageBtn.addEventListener('click', async () => {
+      if (confirm('Are you sure you want to reset all usage data? This cannot be undone.')) {
+        await chrome.storage.local.set({ tokenUsage: {} });
+        showUsageStats(); // Refresh the display
+        updateUsageDisplay();
+      }
+    });
+  }
+  
+  // Close modal when clicking outside
+  window.addEventListener('click', (e) => {
+    const modal = document.getElementById('usage-modal');
+    if (e.target === modal) {
+      modal.classList.add('hidden');
+    }
   });
   
   console.log('✅ Event listeners set up');
@@ -254,6 +298,19 @@ async function askQuestion(question) {
     showError('No article loaded');
     return;
   }
+  
+  // Check usage limits first
+  const today = new Date().toISOString().split('T')[0];
+  const data = await chrome.storage.local.get(['tokenUsage']);
+  const todayUsage = (data.tokenUsage && data.tokenUsage[today]) || 
+                     { input: 0, output: 0, requests: 0 };
+  
+  const limitCheck = checkTokenLimit(todayUsage);
+  
+  if (limitCheck.isOverLimit) {
+    showLimitExceeded(limitCheck);
+    return;
+  }
 
   currentMessages.push({
     role: 'user',
@@ -287,6 +344,12 @@ async function askQuestion(question) {
 
     const data = await response.json();
     
+    // Track token usage
+    // If the backend doesn't provide token counts, estimate them
+    const inputTokens = data.tokens?.input || estimateTokens(currentArticle.content + question);
+    const outputTokens = data.tokens?.output || estimateTokens(data.answer);
+    await trackTokenUsage(inputTokens, outputTokens);
+    
     currentMessages.push({
       role: 'assistant',
       content: data.answer,
@@ -308,6 +371,19 @@ async function askQuestion(question) {
 async function querySummarize(type) {
   if (!currentArticle) {
     showError('No article loaded');
+    return;
+  }
+
+  // Check usage limits first
+  const today = new Date().toISOString().split('T')[0];
+  const data = await chrome.storage.local.get(['tokenUsage']);
+  const todayUsage = (data.tokenUsage && data.tokenUsage[today]) || 
+                     { input: 0, output: 0, requests: 0 };
+  
+  const limitCheck = checkTokenLimit(todayUsage);
+  
+  if (limitCheck.isOverLimit) {
+    showLimitExceeded(limitCheck);
     return;
   }
 
@@ -344,6 +420,12 @@ async function querySummarize(type) {
     }
 
     const data = await response.json();
+    
+    // Track token usage
+    // If the backend doesn't provide token counts, estimate them
+    const inputTokens = data.tokens?.input || estimateTokens(currentArticle.content);
+    const outputTokens = data.tokens?.output || estimateTokens(data.summary);
+    await trackTokenUsage(inputTokens, outputTokens);
     
     currentMessages.push({
       role: 'assistant',
@@ -402,6 +484,101 @@ function copyResponse() {
 
 function updateStatus(status) {
   document.getElementById('status').textContent = status;
+}
+
+// ============================================
+// TOKEN TRACKING FUNCTIONS
+// ============================================
+
+// Estimate tokens from text length (fallback method)
+function estimateTokens(text) {
+  if (!text) return 0;
+  // Rough estimate: ~4 chars per token for English
+  return Math.ceil(text.length / 4);
+}
+
+// Track token usage
+async function trackTokenUsage(inputTokens, outputTokens) {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  
+  // Get current usage
+  const data = await chrome.storage.local.get(['tokenUsage']);
+  const tokenUsage = data.tokenUsage || {};
+  
+  // Initialize today's usage if it doesn't exist
+  if (!tokenUsage[today]) {
+    tokenUsage[today] = {
+      input: 0,
+      output: 0,
+      requests: 0
+    };
+  }
+  
+  // Update counts
+  tokenUsage[today].input += inputTokens;
+  tokenUsage[today].output += outputTokens;
+  tokenUsage[today].requests += 1;
+  
+  // Save back to storage
+  await chrome.storage.local.set({ tokenUsage });
+  
+  // Update UI
+  updateUsageDisplay();
+  
+  // Check if user is over limit
+  return checkTokenLimit(tokenUsage[today]);
+}
+
+// Check if user has exceeded daily limits
+function checkTokenLimit(todayUsage) {
+  return {
+    isOverLimit: todayUsage.input >= DAILY_LIMITS.input || 
+                 todayUsage.output >= DAILY_LIMITS.output || 
+                 todayUsage.requests >= DAILY_LIMITS.requests,
+    usage: todayUsage,
+    limits: DAILY_LIMITS
+  };
+}
+
+// Show daily usage in the UI
+async function updateUsageDisplay() {
+  const today = new Date().toISOString().split('T')[0];
+  const data = await chrome.storage.local.get(['tokenUsage']);
+  const usage = data.tokenUsage && data.tokenUsage[today];
+  
+  if (usage) {
+    const statusBar = document.getElementById('status');
+    const usagePercent = Math.floor((usage.requests / DAILY_LIMITS.requests) * 100);
+    
+    // Only show usage if there's been at least one request
+    if (usage.requests > 0) {
+      statusBar.innerHTML = `
+        ${statusBar.textContent} | Requests today: ${usage.requests}/${DAILY_LIMITS.requests} 
+        <span title="Token usage: ${usage.input + usage.output}">(${usagePercent}% of limit)</span>
+      `;
+    }
+  }
+}
+
+// Show limit exceeded message
+function showLimitExceeded(limitInfo) {
+  document.getElementById('controls').classList.add('hidden');
+  document.getElementById('response-container').classList.add('hidden');
+  
+  const errorContainer = document.getElementById('error-container');
+  const errorMessage = document.getElementById('error-message');
+  
+  errorMessage.innerHTML = `
+    <strong>Daily usage limit reached</strong><br>
+    You've reached your daily usage limit.<br><br>
+    <span style="font-size:13px;color:#6b7280;">
+    Used today: ${limitInfo.usage.requests}/${limitInfo.limits.requests} requests<br>
+    Input tokens: ${limitInfo.usage.input}/${limitInfo.limits.input}<br>
+    Output tokens: ${limitInfo.usage.output}/${limitInfo.limits.output}<br><br>
+    Limits reset at midnight.</span>
+  `;
+  
+  errorContainer.classList.remove('hidden');
 }
 
 // ============================================
@@ -555,4 +732,80 @@ function getTimeAgo(date) {
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
   if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
   return date.toLocaleDateString();
+}
+
+// Format a date string
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+// Show usage statistics
+async function showUsageStats() {
+  const modal = document.getElementById('usage-modal');
+  const content = document.getElementById('usage-stats-content');
+  
+  const data = await chrome.storage.local.get(['tokenUsage']);
+  const usage = data.tokenUsage || {};
+  
+  // Sort dates in descending order
+  const dates = Object.keys(usage).sort().reverse();
+  
+  if (dates.length === 0) {
+    content.innerHTML = `
+      <div style="text-align:center;padding:20px;">
+        <p>No usage data available yet.</p>
+      </div>
+    `;
+    modal.classList.remove('hidden');
+    return;
+  }
+  
+  let html = '<table class="usage-table">';
+  html += '<tr><th>Date</th><th>Requests</th><th>Tokens</th><th>Est. Cost</th></tr>';
+  
+  let totalRequests = 0;
+  let totalTokens = 0;
+  let totalCost = 0;
+  
+  dates.forEach(date => {
+    const day = usage[date];
+    const tokens = day.input + day.output;
+    // Rough cost estimate: input at $0.015/1K, output at $0.06/1K
+    const cost = ((day.input * 0.015) + (day.output * 0.06)) / 1000;
+    
+    totalRequests += day.requests;
+    totalTokens += tokens;
+    totalCost += cost;
+    
+    html += `<tr>
+      <td>${formatDate(date)}</td>
+      <td>${day.requests}</td>
+      <td>${tokens.toLocaleString()}</td>
+      <td>$${cost.toFixed(4)}</td>
+    </tr>`;
+  });
+  
+  html += `<tr class="total-row">
+    <td><strong>Total</strong></td>
+    <td><strong>${totalRequests}</strong></td>
+    <td><strong>${totalTokens.toLocaleString()}</strong></td>
+    <td><strong>$${totalCost.toFixed(2)}</strong></td>
+  </tr>`;
+  
+  html += '</table>';
+  
+  // Add daily limits info
+  html += `
+    <div style="margin-top: 16px; font-size: 13px; color: #6b7280; background: #f3f4f6; padding: 12px; border-radius: 6px;">
+      <strong>Daily Limits:</strong><br>
+      • ${DAILY_LIMITS.requests} requests per day<br>
+      • ${DAILY_LIMITS.input.toLocaleString()} input tokens per day<br>
+      • ${DAILY_LIMITS.output.toLocaleString()} output tokens per day<br>
+      <span style="font-style: italic;">Limits reset at midnight in your local time.</span>
+    </div>
+  `;
+  
+  content.innerHTML = html;
+  modal.classList.remove('hidden');
 }

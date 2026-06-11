@@ -78,7 +78,22 @@
     <div id="history-view" class="view hidden">
       <div class="history-header">
         <h2>Conversation History</h2>
-        <button id="refresh-history" class="icon-btn" title="Refresh">🔄</button>
+        <div>
+          <button id="show-usage" class="icon-btn" title="Usage Stats">📊</button>
+          <button id="refresh-history" class="icon-btn" title="Refresh">🔄</button>
+        </div>
+      </div>
+
+      <!-- Usage Stats Modal -->
+      <div id="usage-modal" class="modal hidden">
+        <div class="modal-content">
+          <span class="close-modal">&times;</span>
+          <h3>Your Usage Stats</h3>
+          <div id="usage-stats-content"></div>
+          <div style="margin-top:20px; text-align:right;">
+            <button id="reset-usage" class="btn btn-secondary">Reset Usage Data</button>
+          </div>
+        </div>
       </div>
 
       <!-- Search Box -->
