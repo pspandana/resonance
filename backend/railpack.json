@@ -1,4 +1,6 @@
 {
   "provider": "python",
-  "pythonVersion": "3.12"
+  "packages": {
+    "python": "3.12"
+  }
 }
